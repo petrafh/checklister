@@ -197,12 +197,12 @@ function App() {
   }
 
   const isDarkMode = theme === 'dark'
-  const shellClass = `mx-auto max-w-5xl rounded-[40px] border p-6 shadow-glass ${
+  const shellClass = `mx-auto w-full max-w-5xl rounded-[40px] border p-4 shadow-glass sm:p-10 ${
     isDarkMode
       ? 'border-white/15 bg-slate-900/70 text-slate-100 backdrop-blur-[36px]'
       : 'border-slate-900/10 bg-white/80 text-slate-900 backdrop-blur-[16px]'
-  } sm:p-10`
-  const badgeClass = `mt-6 inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm ring-1 ${
+  }`
+  const badgeClass = `inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm ring-1 ${
     isDarkMode ? 'bg-white/5 text-slate-200 ring-white/10' : 'bg-emerald-50 text-emerald-700 ring-emerald-100'
   }`
   const mutedText = isDarkMode ? 'text-slate-400' : 'text-slate-500'
@@ -225,7 +225,7 @@ function App() {
       ? 'border-white/10 bg-white/5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-300 focus:ring-emerald-400/40'
       : 'border-slate-900/10 bg-white text-slate-900 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-400/40'
   }`
-  const addInputClass = `flex-1 rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
+  const addInputClass = `flex-1 min-w-0 rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
     isDarkMode
       ? 'border-white/10 bg-white/5 text-slate-100 placeholder:text-slate-500 focus:border-sky-300 focus:ring-sky-300/40'
       : 'border-slate-900/10 bg-white text-slate-900 placeholder:text-slate-400 focus:border-sky-400 focus:ring-sky-300/50'
@@ -279,7 +279,7 @@ function App() {
       <div className="relative z-10 min-h-screen w-full px-4 py-12 md:py-16 transition-colors duration-700">
         <div className={shellClass}>
           <div className="flex flex-col gap-8">
-            <div className="flex justify-end">
+            <div className="flex w-full justify-end">
               <button
                 type="button"
                 className={toggleButtonClass}
@@ -298,7 +298,7 @@ function App() {
             >
               Minimal checklists, zero noise
             </h1>
-            <div className="mt-6 flex items-center justify-center">
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <div className={`${badgeClass} inline-flex items-center gap-3`}>
                 <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
                   {stats.completedItems}/{stats.totalItems}
@@ -308,9 +308,9 @@ function App() {
             </div>
           </header>
 
-          <main className="grid gap-6 lg:grid-cols-[2fr,3fr]">
-            <section className="space-y-6">
-              <form onSubmit={handleCreateChecklist} className={panelClass}>
+          <main className="grid w-full gap-6 grid-cols-1 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+            <section className="w-full space-y-6">
+              <form onSubmit={handleCreateChecklist} className={`${panelClass} w-full`}>
                 <div className={`flex items-center gap-2 text-xs uppercase tracking-[0.3em] ${mutedText}`}>
                   <span className="h-2 w-2 rounded-full bg-emerald-400" />
                   new checklist
@@ -345,7 +345,7 @@ function App() {
 
             </section>
 
-            <section className="space-y-6">
+            <section className="w-full space-y-6">
               {checklists.length === 0 ? (
                 <div className={emptyStateClass}>
                   <p className={`text-lg ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>No checklists yet</p>
@@ -359,8 +359,8 @@ function App() {
                   const total = list.items.length
 
                   return (
-                    <article key={list.id} className={checklistCardClass}>
-                      <header className="relative flex items-start justify-between">
+                    <article key={list.id} className={`${checklistCardClass} w-full`}>
+                      <header className="relative flex flex-wrap items-start gap-4 sm:flex-nowrap sm:justify-between">
                         <div>
                           <p className={`text-xs uppercase tracking-[0.4em] ${mutedText}`}>checklist</p>
                           <h2 className={`mt-1 text-2xl font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
@@ -437,7 +437,7 @@ function App() {
                       </ul>
 
                       <div className="relative mt-5">
-                        <div className="flex gap-3">
+                        <div className="flex flex-wrap gap-3 sm:flex-nowrap">
                           <input
                             value={draftItems[list.id] ?? ''}
                             onChange={(event) =>
