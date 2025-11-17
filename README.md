@@ -1,27 +1,36 @@
-# Checklister
+# Checklister Workspace
 
-Glassmorphism checklist app built with React, TypeScript, Vite, and Tailwind CSS. Create multiple lists, add items, and check them off in a calm minimal workspace. Every change stays in this browser via `localStorage`.
+This repository is now organized as a two-part workspace so the web app and any future server runtime stay isolated and easier to reason about.
 
-## Features
+## Structure
 
-- Create unlimited checklists with optional prefilled tasks.
-- Check off, clear, or delete individual items with instant progress bars.
-- Minimal glass UI powered by Tailwind utilities and custom gradients.
-- Responsive layout that keeps the experience centered on any screen size.
-- Manual light/dark toggle with distinct glass backgrounds for each mode.
-- Automatic persistence to `localStorage` so your rituals and routines stay private.
+- `frontend/` – React + Vite client (moved from the repo root). All UI, assets, configs, and build artifacts now live here.
+- `backend/` – Express + TypeScript API starter ready for deployment to Render (or any Node host).
+- `.github/` – Issue templates and workflows shared by the whole workspace.
 
-## Getting Started
+## Frontend quick start
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Open the printed URL (defaults to [http://localhost:5173](http://localhost:5173)) to use the app. Use `npm run build` to generate a production bundle.
+Use `npm run build` inside `frontend/` for production bundles. The generated files land in `frontend/dist`.
 
-## Stack
+## Backend quick start
 
-- [Vite](https://vite.dev/) + React + TypeScript
-- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling and glassmorphism accents
-- Local state/`localStorage` for persistence
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+The starter API serves health checks plus auth/checklist endpoints backed by in-memory data so you can validate the contract fast. Wire it up to Postgres (Render has a managed option) before shipping to production.
+
+## Notes
+
+- Root-level Node dependencies and configs were moved into `frontend/` so editors and tooling can scope paths correctly.
+- Update any deployment scripts to point at `frontend/` for client builds (e.g., `npm --prefix frontend run build`).
+- When you introduce backend code, keep shared types or utilities in their own package/folder for clarity.
