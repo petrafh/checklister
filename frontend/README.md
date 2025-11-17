@@ -1,6 +1,6 @@
 # Checklister
 
-Glassmorphism checklist app built with React, TypeScript, Vite, and Tailwind CSS. Create multiple lists, add items, and check them off in a calm minimal workspace. Every change stays in this browser via `localStorage`.
+Glassmorphism checklist app built with React, TypeScript, Vite, and Tailwind CSS. Create multiple lists, add items, and check them off in a calm minimal workspace. Accounts and checklists now sync through the Express API that lives in `../backend`.
 
 ## Features
 
@@ -9,16 +9,18 @@ Glassmorphism checklist app built with React, TypeScript, Vite, and Tailwind CSS
 - Minimal glass UI powered by Tailwind utilities and custom gradients.
 - Responsive layout that keeps the experience centered on any screen size.
 - Manual light/dark toggle with distinct glass backgrounds for each mode.
-- Automatic persistence to `localStorage` so your rituals and routines stay private.
+- Cloud-ready persistence through the backend API (plus optional manual JSON export/import).
 
 ## Getting Started
 
 ```bash
 npm install
+cp .env.example .env
+# set VITE_API_URL in .env (defaults to http://localhost:4000)
 npm run dev
 ```
 
-Open the printed URL (defaults to [http://localhost:5173](http://localhost:5173)) to use the app. Use `npm run build` to generate a production bundle.
+Open the printed URL (defaults to [http://localhost:5173](http://localhost:5173)). Make sure the backend service is running on the URL defined in `VITE_API_URL`. Use `npm run build` to generate a production bundle.
 
 ## Stack
 

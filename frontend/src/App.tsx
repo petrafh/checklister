@@ -15,76 +15,24 @@ type Checklist = {
   items: ChecklistItem[]
 }
 
+type ChecklistItemPayload = {
+  id?: string
+  text: string
+  done: boolean
+}
+
 type UserAccount = {
   id: string
   name: string
   email: string
-  passwordHash: string
-  checklists: Checklist[]
   createdAt: string
   updatedAt: string
   syncCode: string
 }
 
-const USERS_KEY = 'checklister:users'
-const SESSION_KEY = 'checklister:session'
 const THEME_KEY = 'checklister:theme'
-
-const defaultLists: Checklist[] = [
-  {
-    id: 'am-start',
-    title: 'Morning reset',
-    items: [
-      { id: 'water', text: 'Drink a glass of water', done: false },
-      { id: 'plan', text: 'Review today’s plan', done: false },
-      { id: 'inbox', text: 'Empty inbox/follow-ups', done: false },
-    ],
-  },
-  {
-    id: 'ship',
-    title: 'Ship it checklist',
-    items: [
-      { id: 'tests', text: 'Run automated tests', done: false },
-      { id: 'notes', text: 'Capture release notes', done: false },
-      { id: 'demo', text: 'Record a quick walkthrough', done: false },
-    ],
-  },
-]
-
-const createId = () =>
-  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-    ? crypto.randomUUID()
-    : `${Date.now().toString(36)}-${Math.random().toString(16).slice(2)}`
-
-const cloneChecklists = (lists: Checklist[]): Checklist[] =>
-  lists.map((list) => ({
-    id: list.id ?? createId(),
-    title: list.title,
-    items: list.items.map((item) => ({ ...item, id: item.id ?? createId() })),
-  }))
-
-const sanitizeChecklists = (lists: Checklist[]): Checklist[] => {
-  if (!Array.isArray(lists)) {
-    return cloneChecklists(defaultLists)
-  }
-  return lists.map((list) => ({
-    id: list.id ?? createId(),
-    title:
-      typeof list.title === 'string' && list.title.trim().length > 0
-        ? list.title.trim()
-        : 'Untitled checklist',
-    items: Array.isArray(list.items)
-      ? list.items.map((item) => ({
-          id: item.id ?? createId(),
-          text:
-            typeof item.text === 'string' && item.text.trim().length > 0
-              ? item.text.trim()
-              : 'Untitled item',
-          done: Boolean(item.done),
-        }))
-      : [],
-  }))
-}
+const TOKEN_KEY = 'checklister:token'
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ?? ''
 
 const computeTheme = (): 'dark' | 'light' => {
   const hour = new Date().getHours()
@@ -102,65 +50,25 @@ const loadTheme = (): 'dark' | 'light' => {
   return computeTheme()
 }
 
-const readUsers = (): Record<string, UserAccount> => {
-  if (typeof window === 'undefined') {
-    return {}
-  }
-  const stored = window.localStorage.getItem(USERS_KEY)
-  if (!stored) {
-    return {}
-  }
+const parseError = async (response: Response) => {
   try {
-    const parsed = JSON.parse(stored)
-    if (parsed && typeof parsed === 'object') {
-      return parsed as Record<string, UserAccount>
+    const data = await response.json()
+    if (data?.error) {
+      return data.error as string
     }
-    return {}
   } catch {
-    return {}
+    /* ignore */
   }
-}
-
-const writeUsers = (users: Record<string, UserAccount>) => {
-  if (typeof window === 'undefined') return
-  window.localStorage.setItem(USERS_KEY, JSON.stringify(users))
-}
-
-const upsertUser = (user: UserAccount) => {
-  const users = readUsers()
-  users[user.id] = user
-  writeUsers(users)
-}
-
-const normalizeEmail = (email: string) => email.trim().toLowerCase()
-
-const hashPassword = (password: string) =>
-  typeof btoa === 'function' ? btoa(password) : password.split('').reverse().join('')
-
-const generateSyncCode = () =>
-  `CHK-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random()
-    .toString(36)
-    .slice(2, 6)
-    .toUpperCase()}`
-
-const createUserAccount = (name: string, email: string, password: string): UserAccount => {
-  const timestamp = new Date().toISOString()
-  return {
-    id: createId(),
-    name,
-    email,
-    passwordHash: hashPassword(password),
-    checklists: cloneChecklists(defaultLists),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    syncCode: generateSyncCode(),
-  }
+  return response.statusText || 'Request failed'
 }
 
 function App() {
+  const [token, setToken] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? window.localStorage.getItem(TOKEN_KEY) : null,
+  )
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null)
   const [sessionReady, setSessionReady] = useState(false)
-  const [checklists, setChecklists] = useState<Checklist[]>(() => cloneChecklists(defaultLists))
+  const [checklists, setChecklists] = useState<Checklist[]>([])
   const [newTitle, setNewTitle] = useState('')
   const [prefillItems, setPrefillItems] = useState('')
   const [draftItems, setDraftItems] = useState<Record<string, string>>({})
@@ -174,25 +82,36 @@ function App() {
   const [syncCopied, setSyncCopied] = useState(false)
   const [importValue, setImportValue] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
-  const [restoreValue, setRestoreValue] = useState('')
-  const [restoreStatus, setRestoreStatus] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const users = readUsers()
-    const sessionId = window.localStorage.getItem(SESSION_KEY)
-    if (sessionId && users[sessionId]) {
-      const user = users[sessionId]
-      setCurrentUser(user)
-      setChecklists(user.checklists.length ? user.checklists : cloneChecklists(defaultLists))
+  const isDarkMode = theme === 'dark'
+
+  const buildUrl = (path: string) => `${API_BASE_URL}${path}`
+
+  const callApi = async <T,>(path: string, options: RequestInit = {}, requiresAuth = false) => {
+    if (requiresAuth && !token) {
+      throw new Error('Please sign in to continue.')
     }
-    setSessionReady(true)
-  }, [])
-
-  useEffect(() => {
-    if (!currentUser) return
-    setProfileForm({ name: currentUser.name, email: currentUser.email })
-  }, [currentUser])
+    const headers = new Headers(options.headers)
+    if (options.body && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+    headers.set('Accept', 'application/json')
+    if (requiresAuth && token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+    const response = await fetch(buildUrl(path), {
+      ...options,
+      headers,
+    })
+    if (!response.ok) {
+      throw new Error(await parseError(response))
+    }
+    if (response.status === 204) {
+      return null as T
+    }
+    return (await response.json()) as T
+  }
 
   useEffect(() => {
     if (typeof document !== 'undefined') {
@@ -203,21 +122,51 @@ function App() {
     }
   }, [theme])
 
-  const activeUserId = currentUser?.id ?? null
+  useEffect(() => {
+    if (!token) {
+      setSessionReady(true)
+      return
+    }
+    setSessionReady(false)
+    let cancelled = false
+    const fetchProfile = async () => {
+      try {
+        const data = await callApi<{ user: UserAccount; checklists: Checklist[] }>(
+          '/me',
+          { method: 'GET' },
+          true,
+        )
+        if (!cancelled) {
+          setCurrentUser(data.user)
+          setChecklists(data.checklists ?? [])
+          setActionError(null)
+        }
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) {
+          setCurrentUser(null)
+          setChecklists([])
+          setToken(null)
+          if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(TOKEN_KEY)
+          }
+        }
+      } finally {
+        if (!cancelled) {
+          setSessionReady(true)
+        }
+      }
+    }
+    fetchProfile()
+    return () => {
+      cancelled = true
+    }
+  }, [token])
 
   useEffect(() => {
-    if (!activeUserId) return
-    const users = readUsers()
-    const storedUser = users[activeUserId]
-    if (!storedUser) return
-    const updatedUser: UserAccount = {
-      ...storedUser,
-      checklists: cloneChecklists(checklists),
-      updatedAt: new Date().toISOString(),
-    }
-    setCurrentUser(updatedUser)
-    upsertUser(updatedUser)
-  }, [activeUserId, checklists])
+    if (!currentUser) return
+    setProfileForm({ name: currentUser.name, email: currentUser.email })
+  }, [currentUser])
 
   const stats = useMemo(() => {
     const totalItems = checklists.reduce((sum, list) => sum + list.items.length, 0)
@@ -234,170 +183,182 @@ function App() {
     return { totalLists, completedLists }
   }, [checklists])
 
-  const handleAuthSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAuthSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setAuthError(null)
-    if (typeof window === 'undefined') return
-
-    const email = normalizeEmail(authForm.email)
-    const password = authForm.password.trim()
-    const name = (authForm.name || '').trim() || 'New teammate'
-
-    if (!email || !password) {
-      setAuthError('Email and password are required.')
-      return
+    try {
+      const email = authForm.email.trim().toLowerCase()
+      const password = authForm.password.trim()
+      if (!email || !password) {
+        setAuthError('Email and password are required.')
+        return
+      }
+      const body =
+        authMode === 'signup'
+          ? { name: authForm.name.trim() || 'New teammate', email, password }
+          : { email, password }
+      const data = await callApi<{ token: string; user: UserAccount; checklists: Checklist[] }>(
+        authMode === 'login' ? '/auth/login' : '/auth/signup',
+        {
+          method: 'POST',
+          body: JSON.stringify(body),
+        },
+      )
+      setToken(data.token)
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(TOKEN_KEY, data.token)
+      }
+      setCurrentUser(data.user)
+      setChecklists(data.checklists ?? [])
+      setAuthForm({ name: '', email: '', password: '' })
+      setActionError(null)
+    } catch (error) {
+      console.error(error)
+      setAuthError(error instanceof Error ? error.message : 'Unable to authenticate.')
     }
-
-    const users = readUsers()
-    const existing = Object.values(users).find((user) => user.email === email)
-
-    if (authMode === 'login') {
-      if (!existing) {
-        setAuthError('No account found. Try creating one instead.')
-        return
-      }
-      if (existing.passwordHash !== hashPassword(password)) {
-        setAuthError('Incorrect password. Please try again.')
-        return
-      }
-      setCurrentUser(existing)
-      setChecklists(existing.checklists.length ? existing.checklists : cloneChecklists(defaultLists))
-      window.localStorage.setItem(SESSION_KEY, existing.id)
-    } else {
-      if (existing) {
-        setAuthError('That email already has an account. Sign in instead.')
-        return
-      }
-      const newUser = createUserAccount(name, email, password)
-      upsertUser(newUser)
-      setCurrentUser(newUser)
-      setChecklists(newUser.checklists)
-      window.localStorage.setItem(SESSION_KEY, newUser.id)
-    }
-
-    setAuthForm({ name: '', email: '', password: '' })
   }
 
-  const handleCreateChecklist = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleCreateChecklist = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!currentUser) return
     const title = newTitle.trim()
     if (!title) return
-
     const items = prefillItems
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean)
-      .map((text) => ({ id: createId(), text, done: false }))
-
-    const newChecklist: Checklist = {
-      id: createId(),
-      title,
-      items,
+      .map((text) => ({ text, done: false }))
+    try {
+      const data = await callApi<{ checklist: Checklist }>(
+        '/checklists',
+        {
+          method: 'POST',
+          body: JSON.stringify({ title, items }),
+        },
+        true,
+      )
+      setChecklists((previous) => [data.checklist, ...previous])
+      setNewTitle('')
+      setPrefillItems('')
+      setActionError(null)
+    } catch (error) {
+      console.error(error)
+      setActionError(error instanceof Error ? error.message : 'Unable to save checklist.')
     }
-
-    setChecklists((previous) => [newChecklist, ...previous])
-    setNewTitle('')
-    setPrefillItems('')
   }
 
-  const handleAddItem = (listId: string) => {
+  const updateChecklistItems = async (listId: string, items: ChecklistItemPayload[]) => {
+    try {
+      const data = await callApi<{ checklist: Checklist }>(
+        `/checklists/${listId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ items }),
+        },
+        true,
+      )
+      setChecklists((previous) => previous.map((list) => (list.id === listId ? data.checklist : list)))
+      setActionError(null)
+    } catch (error) {
+      console.error(error)
+      setActionError(error instanceof Error ? error.message : 'Update failed.')
+    }
+  }
+
+  const handleAddItem = async (listId: string) => {
     if (!currentUser) return
     const text = draftItems[listId]?.trim()
     if (!text) return
-
-    setChecklists((previous) =>
-      previous.map((list) =>
-        list.id === listId
-          ? { ...list, items: [...list.items, { id: createId(), text, done: false }] }
-          : list,
-      ),
-    )
+    const target = checklists.find((list) => list.id === listId)
+    if (!target) return
+    const nextItems: ChecklistItemPayload[] = [
+      ...target.items.map((item) => ({ id: item.id, text: item.text, done: item.done })),
+      { text, done: false },
+    ]
+    await updateChecklistItems(listId, nextItems)
     setDraftItems((prev) => ({ ...prev, [listId]: '' }))
   }
 
-  const handleToggleItem = (listId: string, itemId: string) => {
+  const handleToggleItem = async (listId: string, itemId: string) => {
     if (!currentUser) return
-    setChecklists((previous) =>
-      previous.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              items: list.items.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)),
-            }
-          : list,
-      ),
-    )
+    const target = checklists.find((list) => list.id === listId)
+    if (!target) return
+    const nextItems: ChecklistItemPayload[] = target.items.map((item) => ({
+      id: item.id,
+      text: item.text,
+      done: item.id === itemId ? !item.done : item.done,
+    }))
+    await updateChecklistItems(listId, nextItems)
   }
 
-  const handleDeleteItem = (listId: string, itemId: string) => {
+  const handleDeleteItem = async (listId: string, itemId: string) => {
     if (!currentUser) return
-    setChecklists((previous) =>
-      previous.map((list) =>
-        list.id === listId ? { ...list, items: list.items.filter((item) => item.id !== itemId) } : list,
-      ),
-    )
+    const target = checklists.find((list) => list.id === listId)
+    if (!target) return
+    const nextItems: ChecklistItemPayload[] = target.items
+      .filter((item) => item.id !== itemId)
+      .map((item) => ({ id: item.id, text: item.text, done: item.done }))
+    await updateChecklistItems(listId, nextItems)
   }
 
-  const handleDeleteChecklist = (listId: string) => {
+  const handleDeleteChecklist = async (listId: string) => {
     if (!currentUser) return
-    setChecklists((previous) => previous.filter((list) => list.id !== listId))
-    setDraftItems((prev) => {
-      const next = { ...prev }
-      delete next[listId]
-      return next
-    })
+    try {
+      await callApi(`/checklists/${listId}`, { method: 'DELETE' }, true)
+      setChecklists((previous) => previous.filter((list) => list.id !== listId))
+      setActionError(null)
+    } catch (error) {
+      console.error(error)
+      setActionError(error instanceof Error ? error.message : 'Unable to delete checklist.')
+    }
   }
 
-  const handleClearCompleted = (listId: string) => {
+  const handleClearCompleted = async (listId: string) => {
     if (!currentUser) return
-    setChecklists((previous) =>
-      previous.map((list) =>
-        list.id === listId ? { ...list, items: list.items.filter((item) => !item.done) } : list,
-      ),
-    )
+    const target = checklists.find((list) => list.id === listId)
+    if (!target) return
+    const nextItems: ChecklistItemPayload[] = target.items
+      .filter((item) => !item.done)
+      .map((item) => ({ id: item.id, text: item.text, done: item.done }))
+    await updateChecklistItems(listId, nextItems)
   }
 
   const toggleTheme = () => {
     setTheme((current) => (current === 'dark' ? 'light' : 'dark'))
   }
 
-  const handleProfileSave = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleProfileSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!currentUser) return
-    setProfileMessage(null)
-    const name = profileForm.name.trim()
-    const email = normalizeEmail(profileForm.email)
-    if (!name || !email) {
-      setProfileMessage('Name and email are required.')
-      return
+    try {
+      const payload = {
+        name: profileForm.name.trim(),
+        email: profileForm.email.trim().toLowerCase(),
+      }
+      const data = await callApi<{ user: UserAccount }>(
+        '/me',
+        {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        },
+        true,
+      )
+      setCurrentUser(data.user)
+      setProfileMessage('Profile updated')
+      setTimeout(() => setProfileMessage(null), 2000)
+    } catch (error) {
+      console.error(error)
+      setProfileMessage(error instanceof Error ? error.message : 'Unable to update profile.')
     }
-
-    const users = readUsers()
-    const emailTaken = Object.values(users).some((user) => user.email === email && user.id !== currentUser.id)
-    if (emailTaken) {
-      setProfileMessage('Email already in use by another account.')
-      return
-    }
-
-    const updatedUser: UserAccount = {
-      ...currentUser,
-      name,
-      email,
-      updatedAt: new Date().toISOString(),
-    }
-    setCurrentUser(updatedUser)
-    upsertUser(updatedUser)
-    setProfileMessage('Profile updated')
-    window.setTimeout(() => setProfileMessage(null), 2000)
   }
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
-      window.localStorage.removeItem(SESSION_KEY)
+      window.localStorage.removeItem(TOKEN_KEY)
     }
+    setToken(null)
     setCurrentUser(null)
-    setChecklists(cloneChecklists(defaultLists))
+    setChecklists([])
     setNewTitle('')
     setPrefillItems('')
     setDraftItems({})
@@ -407,16 +368,9 @@ function App() {
   const syncPayload = currentUser
     ? JSON.stringify(
         {
-          version: 1,
+          version: 2,
           exportedAt: new Date().toISOString(),
-          user: {
-            id: currentUser.id,
-            name: currentUser.name,
-            email: currentUser.email,
-            passwordHash: currentUser.passwordHash,
-            createdAt: currentUser.createdAt,
-            syncCode: currentUser.syncCode,
-          },
+          user: currentUser,
           checklists,
         },
         null,
@@ -440,7 +394,7 @@ function App() {
       setSyncCopied(true)
       window.setTimeout(() => setSyncCopied(false), 2000)
     } catch {
-      setImportError('Copy failed. Manually select the backup text.')
+      setImportError('Copy failed. Manually select the text below.')
     }
   }
 
@@ -455,7 +409,7 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
-  const handleImportData = () => {
+  const handleImportData = async () => {
     if (!currentUser) return
     setImportError(null)
     if (!importValue.trim()) {
@@ -464,59 +418,30 @@ function App() {
     }
     try {
       const parsed = JSON.parse(importValue)
-      const payloadLists = Array.isArray(parsed)
+      const payload = Array.isArray(parsed)
         ? parsed
         : parsed.checklists ?? parsed.user?.checklists ?? []
-      const incoming = sanitizeChecklists(payloadLists)
-      setChecklists(incoming)
-      setImportValue('')
-      setProfileMessage('Lists imported')
-      window.setTimeout(() => setProfileMessage(null), 2000)
-    } catch {
-      setImportError('Backup could not be parsed.')
-    }
-  }
-
-  const handleRestoreAccount = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setRestoreStatus(null)
-    if (!restoreValue.trim()) {
-      setRestoreStatus('Paste a backup JSON payload first.')
-      return
-    }
-    try {
-      const parsed = JSON.parse(restoreValue)
-      const userPayload = parsed.user ?? parsed
-      const email = normalizeEmail(userPayload.email ?? '')
-      const passwordHashValue =
-        typeof userPayload.passwordHash === 'string' ? userPayload.passwordHash : null
-      if (!email || !passwordHashValue) {
+      if (!Array.isArray(payload)) {
         throw new Error('Invalid payload')
       }
-      const restoredUser: UserAccount = {
-        id: userPayload.id ?? createId(),
-        name: userPayload.name ?? 'Restored user',
-        email,
-        passwordHash: passwordHashValue,
-        checklists: sanitizeChecklists(parsed.checklists ?? userPayload.checklists ?? []),
-        createdAt: userPayload.createdAt ?? new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        syncCode: userPayload.syncCode ?? generateSyncCode(),
-      }
-      upsertUser(restoredUser)
-      setCurrentUser(restoredUser)
-      setChecklists(restoredUser.checklists)
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(SESSION_KEY, restoredUser.id)
-      }
-      setRestoreValue('')
-      setRestoreStatus('Backup restored! You are signed in.')
-    } catch {
-      setRestoreStatus('Backup format not recognized.')
+      const data = await callApi<{ checklists: Checklist[] }>(
+        '/checklists',
+        {
+          method: 'PUT',
+          body: JSON.stringify(payload),
+        },
+        true,
+      )
+      setChecklists(data.checklists ?? [])
+      setImportValue('')
+      setProfileMessage('Lists imported')
+      setTimeout(() => setProfileMessage(null), 2000)
+    } catch (error) {
+      console.error(error)
+      setImportError(error instanceof Error ? error.message : 'Backup could not be parsed.')
     }
   }
 
-  const isDarkMode = theme === 'dark'
   const shellClass = `mx-auto w-full max-w-5xl rounded-[40px] border p-4 shadow-glass sm:p-10 ${
     isDarkMode
       ? 'border-white/15 bg-slate-900/70 text-slate-100 backdrop-blur-[36px]'
@@ -575,7 +500,7 @@ function App() {
       ? 'border-white/15 text-slate-100 hover:bg-white/10'
       : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
   }`
-  const loginButtonClass = `mt-6 w-full rounded-2xl px-4 py-3 text-base font-semibold text-white shadow-glass transition ${
+  const primaryButtonClass = `mt-6 w-full rounded-2xl px-4 py-3 text-base font-semibold text-white shadow-glass transition ${
     isDarkMode ? 'bg-emerald-400 hover:bg-emerald-300' : 'bg-emerald-500 hover:bg-emerald-400'
   }`
 
@@ -633,14 +558,16 @@ function App() {
                 </div>
               </div>
               <header className="text-center">
-                <h1 className={`text-4xl font-semibold tracking-tight md:text-5xl ${
-                  isDarkMode ? 'text-white' : 'text-slate-900'
-                }`}>
+                <h1
+                  className={`text-4xl font-semibold tracking-tight md:text-5xl ${
+                    isDarkMode ? 'text-white' : 'text-slate-900'
+                  }`}
+                >
                   Lists that travel with you
                 </h1>
                 <p className={`mx-auto mt-3 max-w-2xl text-base ${secondaryText}`}>
-                  Sign in once and pick up your rituals anywhere. Every checklist stays synced to your
-                  account, so shipping, packing, and planning follow you on every device.
+                  Sign in once and pick up your rituals anywhere. Every checklist stays synced to your account, so
+                  shipping, packing, and planning follow you on every device.
                 </p>
                 <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                   <div className={badgeClass}>
@@ -656,6 +583,7 @@ function App() {
                     <span className={mutedText}>lists complete</span>
                   </div>
                 </div>
+                {actionError && <p className="mt-4 text-sm text-rose-400">{actionError}</p>}
               </header>
 
               <main className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -685,7 +613,7 @@ function App() {
                         className={inputClass}
                       />
                     </label>
-                    <button type="submit" className={loginButtonClass}>
+                    <button type="submit" className={primaryButtonClass}>
                       Save checklist
                     </button>
                   </form>
@@ -846,8 +774,8 @@ function App() {
                   Save rituals across every device
                 </h1>
                 <p className={`mx-auto mt-4 max-w-2xl text-base ${secondaryText}`}>
-                  Create an account to store unlimited checklists and pick them up from any browser. Your
-                  workspace is encrypted locally and can be exported or restored with a single key.
+                  Create an account to store unlimited checklists and pick them up from any browser. Everything lives on
+                  your secure backend now, so you can sign in anywhere and continue where you left off.
                 </p>
               </header>
 
@@ -887,7 +815,7 @@ function App() {
                   />
                 </label>
                 {authError && <p className="text-sm text-rose-400">{authError}</p>}
-                <button type="submit" className={loginButtonClass}>
+                <button type="submit" className={primaryButtonClass}>
                   {authMode === 'login' ? 'Sign in' : 'Create account'}
                 </button>
                 <button
@@ -912,7 +840,7 @@ function App() {
                   <ul className={`mt-3 space-y-2 text-sm ${secondaryText}`}>
                     <li>• Unlimited checklists tied to your account</li>
                     <li>• Cloud-ready backups with copy & download</li>
-                    <li>• Manual exports for offline safekeeping</li>
+                    <li>• Secure auth powered by your Render backend</li>
                   </ul>
                 </div>
                 <div className={panelClass}>
@@ -920,38 +848,10 @@ function App() {
                     Bring your data anywhere
                   </p>
                   <p className={`mt-3 text-sm ${secondaryText}`}>
-                    After signing in, open the profile panel to copy or download a portable backup. Paste it on a
-                    new device to instantly sync your space.
+                    Sign in to sync automatically, or export a JSON backup once in a while for offline peace of mind.
                   </p>
                 </div>
               </section>
-
-              <form onSubmit={handleRestoreAccount} className={`${panelClass} space-y-4`}>
-                <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>
-                  Restore from backup
-                </p>
-                <p className={`text-sm ${secondaryText}`}>
-                  Already exported your space? Paste the JSON backup below and we’ll recreate your account instantly.
-                </p>
-                <textarea
-                  value={restoreValue}
-                  onChange={(event) => setRestoreValue(event.target.value)}
-                  placeholder="Paste backup JSON here"
-                  className={`${inputClass} h-32`}
-                />
-                {restoreStatus && (
-                  <p
-                    className={`text-sm ${
-                      restoreStatus.toLowerCase().includes('restored') ? 'text-emerald-400' : 'text-rose-400'
-                    }`}
-                  >
-                    {restoreStatus}
-                  </p>
-                )}
-                <button type="submit" className={loginButtonClass}>
-                  Restore & sign in
-                </button>
-              </form>
             </div>
           )}
         </div>
@@ -999,7 +899,7 @@ function App() {
                   />
                 </label>
                 <div className="sm:col-span-2 flex flex-wrap items-center gap-3">
-                  <button type="submit" className={loginButtonClass}>
+                  <button type="submit" className={primaryButtonClass}>
                     Save profile
                   </button>
                   {profileMessage && <span className={`text-sm ${secondaryText}`}>{profileMessage}</span>}
@@ -1010,8 +910,8 @@ function App() {
                 <div className={panelClass}>
                   <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Backup</p>
                   <p className={`mt-2 text-xs ${mutedText}`}>
-                    Copy or download this JSON payload to move your lists to another device. Paste it under
-                    Restore on the new device after signing in.
+                    Copy or download this JSON payload to move your lists to another environment or keep an offline
+                    snapshot.
                   </p>
                   <textarea readOnly value={syncPayload} className={`${inputClass} mt-3 h-32`} />
                   <div className="mt-3 flex flex-wrap gap-3">
@@ -1027,7 +927,7 @@ function App() {
                   <p className={`text-sm font-semibold ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Restore</p>
                   <p className={`mt-2 text-xs ${mutedText}`}>
                     Paste a backup JSON payload below and click Import. This overwrites your current lists with the
-                    backup contents.
+                    backup contents on the server.
                   </p>
                   <textarea
                     value={importValue}

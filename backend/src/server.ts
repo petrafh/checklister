@@ -39,9 +39,10 @@ type UserAccount = {
   checklists: Checklist[]
   createdAt: string
   updatedAt: string
+  syncCode: string
 }
 
-type PublicUser = Pick<UserAccount, 'id' | 'name' | 'email' | 'createdAt' | 'updatedAt'>
+type PublicUser = Pick<UserAccount, 'id' | 'name' | 'email' | 'createdAt' | 'updatedAt' | 'syncCode'>
 
 type AuthedRequest = Request & { user?: UserAccount }
 
@@ -97,7 +98,20 @@ const checklistUpdateSchema = z.object({
   items: z.array(checklistItemSchema).optional(),
 })
 
+const profileUpdateSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+})
+
+const bulkChecklistSchema = z.array(checklistSchema)
+
 const createId = () => randomUUID()
+
+const generateSyncCode = () =>
+  `CHK-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.random()
+    .toString(36)
+    .slice(2, 6)
+    .toUpperCase()}`
 
 const cloneDefaultLists = (): Checklist[] =>
   defaultLists.map((list) => ({
@@ -139,6 +153,7 @@ const toPublicUser = (user: UserAccount): PublicUser => ({
   email: user.email,
   createdAt: user.createdAt,
   updatedAt: user.updatedAt,
+  syncCode: user.syncCode,
 })
 
 const issueToken = (user: UserAccount) =>
@@ -194,6 +209,7 @@ app.post('/auth/signup', async (req, res, next) => {
       checklists: cloneDefaultLists(),
       createdAt: timestamp,
       updatedAt: timestamp,
+      syncCode: generateSyncCode(),
     }
     users.set(user.id, user)
     usersByEmail.set(normalizedEmail, user)
@@ -227,6 +243,25 @@ app.get('/me', requireAuth, (req: AuthedRequest, res) => {
   res.json({ user: toPublicUser(req.user!), checklists: req.user!.checklists })
 })
 
+app.put('/me', requireAuth, (req: AuthedRequest, res, next) => {
+  try {
+    const body = profileUpdateSchema.parse(req.body)
+    const normalizedEmail = body.email.toLowerCase()
+    const user = req.user!
+    if (user.email !== normalizedEmail && usersByEmail.has(normalizedEmail)) {
+      return res.status(409).json({ error: 'Email already in use' })
+    }
+    usersByEmail.delete(user.email)
+    user.name = body.name.trim()
+    user.email = normalizedEmail
+    user.updatedAt = new Date().toISOString()
+    usersByEmail.set(normalizedEmail, user)
+    res.json({ user: toPublicUser(user) })
+  } catch (error) {
+    next(error)
+  }
+})
+
 app.get('/checklists', requireAuth, (req: AuthedRequest, res) => {
   res.json({ checklists: req.user!.checklists })
 })
@@ -239,6 +274,19 @@ app.post('/checklists', requireAuth, (req: AuthedRequest, res, next) => {
     user.checklists.unshift(newChecklist)
     user.updatedAt = new Date().toISOString()
     res.status(201).json({ checklist: newChecklist })
+  } catch (error) {
+    next(error)
+  }
+})
+
+app.put('/checklists', requireAuth, (req: AuthedRequest, res, next) => {
+  try {
+    const parsed = bulkChecklistSchema.parse(req.body)
+    const sanitized = parsed.map(sanitizeChecklist)
+    const user = req.user!
+    user.checklists = sanitized
+    user.updatedAt = new Date().toISOString()
+    res.json({ checklists: user.checklists })
   } catch (error) {
     next(error)
   }
