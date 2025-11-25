@@ -775,7 +775,7 @@ function App() {
                 </h1>
                 <p className={`mx-auto mt-4 max-w-2xl text-base ${secondaryText}`}>
                   Create an account to store unlimited checklists and pick them up from any browser. Everything lives on
-                  your secure backend now, so you can sign in anywhere and continue where you left off.
+                  your connected API now, so you can sign in anywhere and continue where you left off.
                 </p>
               </header>
 
@@ -840,7 +840,7 @@ function App() {
                   <ul className={`mt-3 space-y-2 text-sm ${secondaryText}`}>
                     <li>• Unlimited checklists tied to your account</li>
                     <li>• Cloud-ready backups with copy & download</li>
-                    <li>• Secure auth powered by your Render backend</li>
+                    <li>• Secure auth powered by your chosen API</li>
                   </ul>
                 </div>
                 <div className={panelClass}>
