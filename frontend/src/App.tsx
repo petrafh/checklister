@@ -118,6 +118,7 @@ function App() {
   const [prefillItems, setPrefillItems] = useState('')
   const [draftItems, setDraftItems] = useState<Record<string, string>>({})
   const [theme, setTheme] = useState<'dark' | 'light'>(loadTheme)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
 
   const isDarkMode = theme === 'dark'
 
@@ -195,9 +196,17 @@ function App() {
     )
   }
 
-  const handleDeleteChecklist = (listId: string) => {
-    setChecklists((prev) => prev.filter((list) => list.id !== listId))
+  const handleDeleteChecklist = (listId: string, title: string) => {
+    setPendingDelete({ id: listId, title })
   }
+
+  const confirmDeleteChecklist = () => {
+    if (!pendingDelete) return
+    setChecklists((prev) => prev.filter((list) => list.id !== pendingDelete.id))
+    setPendingDelete(null)
+  }
+
+  const cancelDeleteChecklist = () => setPendingDelete(null)
 
   const handleClearCompleted = (listId: string) => {
     setChecklists((prev) =>
@@ -400,7 +409,7 @@ function App() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => handleDeleteChecklist(list.id)}
+                            onClick={() => handleDeleteChecklist(list.id, list.title)}
                             className={`rounded-full border px-3 py-1 text-xs uppercase tracking-wide transition ${
                               isDarkMode
                                 ? 'border-white/10 bg-white/5 text-slate-300 hover:text-rose-200'
@@ -498,6 +507,41 @@ function App() {
           </div>
         </div>
       </div>
+
+      {pendingDelete && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-slate-900/70 px-4 py-10">
+          <div
+            className={`w-full max-w-md rounded-3xl border p-6 shadow-glass ${
+              isDarkMode ? 'border-white/10 bg-slate-900/90 text-slate-50' : 'border-slate-200 bg-white'
+            }`}
+          >
+            <h3 className="text-lg font-semibold">Delete checklist?</h3>
+            <p className={`mt-2 text-sm ${secondaryText}`}>
+              Are you sure you want to delete “{pendingDelete.title}”? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex flex-wrap justify-end gap-3">
+              <button
+                type="button"
+                onClick={cancelDeleteChecklist}
+                className={`rounded-2xl border px-4 py-2 text-sm font-medium transition ${
+                  isDarkMode
+                    ? 'border-white/15 text-slate-100 hover:bg-white/10'
+                    : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteChecklist}
+                className="rounded-2xl border border-rose-200 bg-rose-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-400"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
