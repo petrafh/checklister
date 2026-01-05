@@ -466,11 +466,10 @@ function App() {
     isDarkMode ? 'text-slate-300' : 'text-slate-500'
   }`
   const calendarOutsideDayClass = isDarkMode ? 'text-slate-500' : 'text-slate-400'
-  const calendarTodayClass = isDarkMode ? 'border border-emerald-300/60' : 'border border-sky-400/60'
   const calendarAccentTextClass = isDarkMode ? 'text-emerald-100' : 'text-sky-700'
   const calendarAccentBg = isDarkMode ? '#34d399' : '#0ea5e9'
   const calendarAccentText = isDarkMode ? '#052e16' : '#f8fafc'
-  const calendarTodayBorder = isDarkMode ? '#6ee7b7' : '#38bdf8'
+  const calendarTodayClass = ''
   const [activeListId, activeItemId] = openDeadlineKey?.split(':') ?? []
   const activeDeadlineDraft = openDeadlineKey ? deadlineDrafts[openDeadlineKey] ?? '' : ''
   const activeTaskLabel =
@@ -782,6 +781,11 @@ function App() {
                   months: { width: '100%' },
                   month: { width: '100%' },
                   month_grid: { width: '100%' },
+                  nav_button: {
+                    color: isDarkMode ? '#34d399' : '#0ea5e9',
+                    borderColor: isDarkMode ? '#6ee7b7' : '#38bdf8',
+                    backgroundColor: isDarkMode ? 'rgba(52, 211, 153, 0.08)' : 'rgba(14, 165, 233, 0.08)',
+                  },
                 }}
                 modifiersStyles={{
                   selected: {
@@ -791,9 +795,11 @@ function App() {
                     boxShadow: 'none',
                   },
                   today: {
-                    borderColor: calendarTodayBorder,
-                    color: isDarkMode ? '#e2e8f0' : '#0f172a',
+                    borderColor: 'transparent',
+                    color: '#ef4444',
+                    backgroundColor: 'transparent',
                     boxShadow: 'none',
+                    fontWeight: 700,
                   },
                 }}
                 classNames={{
