@@ -6,8 +6,6 @@ import { Archive, CalendarDays, LayoutDashboard, Moon, Plus, Sun } from 'lucide-
 import { DayPicker } from 'react-day-picker'
 import 'react-day-picker/dist/style.css'
 import { useEffect, useMemo, useState } from 'react'
-import darkBackground from './assets/darkmode-background.jpg'
-import lightBackground from './assets/lightmode.jpg'
 
 type SortMode = 'manual' | 'deadline-asc' | 'deadline-desc'
 
@@ -521,38 +519,41 @@ function App() {
 
   const shellClass = `mx-auto w-full max-w-5xl rounded-[40px] border p-4 shadow-glass sm:p-10 ${
     isDarkMode
-      ? 'border-white/15 bg-slate-900/70 text-slate-100 backdrop-blur-[36px]'
-      : 'border-slate-900/10 bg-white/80 text-slate-900 backdrop-blur-[16px]'
-  } ${isArchiveRoute ? (isDarkMode ? 'ring-2 ring-emerald-400/40' : 'ring-2 ring-sky-300/60') : ''}`
+      ? 'border-emerald-300/25 bg-slate-950/75 text-emerald-50 backdrop-blur-[32px]'
+      : 'border-sky-200 bg-white/95 text-slate-900 backdrop-blur-[16px] shadow-lg shadow-sky-200/40'
+  } ${isArchiveRoute ? (isDarkMode ? 'ring-2 ring-emerald-300/40' : 'ring-2 ring-sky-500/70') : ''}`
+  const pageBackgroundClass = isDarkMode
+    ? 'bg-gradient-to-br from-emerald-900 via-slate-900 to-emerald-900'
+    : 'bg-gradient-to-br from-sky-200 via-sky-100 to-sky-600'
   const badgeClass = `inline-flex items-center gap-3 rounded-full px-5 py-2 text-sm ring-1 ${
-    isDarkMode ? 'bg-white/5 text-slate-200 ring-white/10' : 'bg-sky-50 text-sky-700 ring-sky-100'
+    isDarkMode ? 'bg-slate-900/70 text-emerald-100 ring-emerald-300/30' : 'bg-sky-100 text-sky-800 ring-sky-400/70 shadow-sm shadow-sky-200/70'
   }`
   const mutedText = isDarkMode ? 'text-slate-400' : 'text-slate-500'
   const secondaryText = isDarkMode ? 'text-slate-300' : 'text-slate-600'
   const labelText = isDarkMode ? 'text-slate-200' : 'text-slate-700'
   const panelClass = `rounded-3xl border p-6 shadow-glass ${
-    isDarkMode ? 'border-white/10 bg-white/10' : 'border-slate-900/10 bg-white/90'
+    isDarkMode ? 'border-emerald-200/25 bg-slate-900/75' : 'border-sky-200 bg-white shadow-lg shadow-sky-100/60'
   }`
   const emptyStateClass = `rounded-3xl border border-dashed p-10 text-center ${
-    isDarkMode ? 'border-white/10 bg-white/5 text-slate-400' : 'border-slate-900/15 bg-white/85 text-slate-500'
+    isDarkMode ? 'border-emerald-300/25 bg-slate-900/70 text-emerald-100' : 'border-sky-200 bg-sky-50 text-sky-700'
   }`
   const checklistCardClass = `relative overflow-hidden rounded-3xl border p-6 shadow-glass ${
-    isDarkMode ? 'border-white/10 bg-white/5' : 'border-slate-900/10 bg-white/90'
+    isDarkMode ? 'border-slate-800/60 bg-slate-900/70' : 'border-sky-200 bg-white shadow-md shadow-sky-100/60'
   }`
   const inputClass = `mt-2 w-full rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
     isDarkMode
-      ? 'border-white/10 bg-white/5 text-slate-100 placeholder:text-slate-500 focus:border-emerald-300 focus:ring-emerald-400/40'
-      : 'border-slate-900/10 bg-white text-slate-900 placeholder:text-slate-500 focus:border-sky-400 focus:ring-sky-400/40'
+      ? 'border-emerald-300/30 bg-slate-900/60 text-emerald-50 placeholder:text-emerald-200/70 focus:border-emerald-200 focus:ring-emerald-300/60'
+      : 'border-sky-300 bg-white text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-sky-400/70'
   }`
   const addInputClass = `flex-1 min-w-0 rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
     isDarkMode
-      ? 'border-white/10 bg-white/5 text-slate-100 placeholder:text-slate-500 focus:border-sky-300 focus:ring-sky-300/40 disabled:cursor-not-allowed disabled:opacity-60'
-      : 'border-slate-900/10 bg-white text-slate-900 placeholder:text-slate-400 focus:border-sky-400 focus:ring-sky-300/50 disabled:cursor-not-allowed disabled:opacity-60'
+      ? 'border-emerald-300/30 bg-slate-900/60 text-emerald-50 placeholder:text-emerald-200/70 focus:border-emerald-200 focus:ring-emerald-300/60 disabled:cursor-not-allowed disabled:opacity-60'
+      : 'border-sky-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-sky-500 focus:ring-sky-300/70 disabled:cursor-not-allowed disabled:opacity-60'
   }`
   const addButtonClass = `rounded-2xl border px-5 text-sm font-medium transition ${
     isDarkMode
-      ? 'bg-emerald-600 border-white/10 bg-white/10 text-white hover:bg-white/20 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-400'
-      : 'border-sky-500/20 bg-sky-500/90 text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500'
+      ? 'bg-emerald-500 border-emerald-200/30 text-emerald-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-800/40 disabled:text-emerald-200'
+      : 'border-sky-400 bg-sky-500 text-white hover:bg-sky-600 shadow-sm shadow-sky-200/70 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500'
   }`
   const checkboxClass = `h-4 w-4 rounded border text-emerald-300 accent-emerald-300 ${
     isDarkMode
@@ -638,7 +639,7 @@ function App() {
           isArchiveRoute
             ? isDarkMode
               ? 'border-emerald-300/40 bg-emerald-900/30'
-              : 'border-sky-300/50 bg-sky-50/80'
+              : 'border-sky-400 bg-sky-50/95 shadow-sky-200/60'
             : ''
         }`}
       >
@@ -730,121 +731,121 @@ function App() {
 
         {!collapsed && (
           <>
-        <div className="relative mt-5">
-          <div
-            className={`mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] ${mutedText}`}
-          >
-            <span>progress</span>
-            <span className={isDarkMode ? 'text-slate-200' : 'text-slate-700'}>
-              {completed}/{total}
-            </span>
-          </div>
-          <div className={progressTrackClass}>
-            <div
-              className={progressFillClass}
-              style={{
-                width: `${total === 0 ? 0 : (completed / total) * 100}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className={`flex items-center gap-2 text-xs uppercase tracking-[0.3em] ${mutedText}`}>
-            <CalendarDays className="h-4 w-4" />
-            deadlines
-          </div>
-          <div className="flex gap-2 text-xs font-semibold">
-            {(['manual', 'deadline-asc', 'deadline-desc'] as SortMode[]).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => handleSortChange(list.id, mode)}
-                className={`rounded-xl border px-3 py-1 uppercase tracking-wide transition ${
-                  sortMode === mode
-                    ? isDarkMode
-                      ? 'border-emerald-300/50 bg-emerald-300/20 text-emerald-100'
-                      : 'border-sky-400 bg-sky-50 text-sky-700'
-                    : isDarkMode
-                      ? 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
-                } ${isArchived ? 'opacity-60' : ''}`}
-                disabled={isArchived}
+            <div className="relative mt-5">
+              <div
+                className={`mb-2 flex items-center justify-between text-xs uppercase tracking-[0.3em] ${mutedText}`}
               >
-                {mode === 'manual' ? 'Manual' : mode === 'deadline-asc' ? 'Earliest' : 'Latest'}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={(event) => handleDragEnd(event, list.id)}
-        >
-          <SortableContext items={sortedItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
-            <ul className="relative mt-6 space-y-3">
-              {list.items.length === 0 && (
-                <li
-                  className={`rounded-2xl border border-dashed px-4 py-3 text-sm ${
-                    isDarkMode ? 'border-white/15 text-slate-400' : 'border-slate-900/15 text-slate-500'
-                  }`}
-                >
-                  {isArchiveRoute ? 'This archived list has no items.' : 'Nothing here yet — add your first step below.'}
-                </li>
-              )}
-              {sortedItems.map((item) => {
-                return (
-                  <SortableItem
-                    key={item.id}
-                    item={item}
-                    listId={list.id}
-                    checkboxClass={checkboxClass}
-                    removeButtonClass={removeButtonClass}
-                    isDarkMode={isDarkMode}
-                    onToggle={handleToggleItem}
-                    onRemove={handleDeleteItem}
-                    onStartDeadlineEdit={handleStartDeadlineEdit}
-                    onClearDeadline={handleClearDeadline}
-                    dragDisabled={dragDisabled}
-                    readOnly={isArchived}
-                    isArchiveView={isArchiveRoute}
-                  />
-                )
-              })}
-            </ul>
-          </SortableContext>
-        </DndContext>
-
-        {!isArchiveRoute && (
-          <div className="relative mt-5">
-            <div className="flex flex-wrap gap-3 sm:flex-nowrap">
-              <input
-                value={draftItems[list.id] ?? ''}
-                onChange={(event) =>
-                  setDraftItems((prev) => ({ ...prev, [list.id]: event.target.value }))
-                }
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault()
-                    handleAddItem(list.id)
-                  }
-                }}
-                placeholder="Add a task"
-                className={addInputClass}
-                disabled={isArchived}
-              />
-              <button type="button" onClick={() => handleAddItem(list.id)} className={addButtonClass} disabled={isArchived}>
-                Add
-              </button>
+                <span>progress</span>
+                <span className={isDarkMode ? 'text-slate-200' : 'text-slate-700'}>
+                  {completed}/{total}
+                </span>
+              </div>
+              <div className={progressTrackClass}>
+                <div
+                  className={progressFillClass}
+                  style={{
+                    width: `${total === 0 ? 0 : (completed / total) * 100}%`,
+                  }}
+                />
+              </div>
             </div>
-            {!isArchived && list.items.some((item) => item.done) && (
-              <button type="button" onClick={() => handleClearCompleted(list.id)} className={clearButtonClass}>
-                Clear completed
-              </button>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <div className={`flex items-center gap-2 text-xs uppercase tracking-[0.3em] ${mutedText}`}>
+                <CalendarDays className="h-4 w-4" />
+                deadlines
+              </div>
+              <div className="flex gap-2 text-xs font-semibold">
+                {(['manual', 'deadline-asc', 'deadline-desc'] as SortMode[]).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => handleSortChange(list.id, mode)}
+                    className={`rounded-xl border px-3 py-1 uppercase tracking-wide transition ${
+                      sortMode === mode
+                        ? isDarkMode
+                          ? 'border-emerald-300/50 bg-emerald-300/20 text-emerald-100'
+                          : 'border-sky-400 bg-sky-50 text-sky-700'
+                        : isDarkMode
+                          ? 'border-white/10 bg-white/5 text-slate-200 hover:border-white/20'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    } ${isArchived ? 'opacity-60' : ''}`}
+                    disabled={isArchived}
+                  >
+                    {mode === 'manual' ? 'Manual' : mode === 'deadline-asc' ? 'Earliest' : 'Latest'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => handleDragEnd(event, list.id)}
+            >
+              <SortableContext items={sortedItems.map((item) => item.id)} strategy={verticalListSortingStrategy}>
+                <ul className="relative mt-6 space-y-3">
+                  {list.items.length === 0 && (
+                    <li
+                      className={`rounded-2xl border border-dashed px-4 py-3 text-sm ${
+                        isDarkMode ? 'border-white/15 text-slate-400' : 'border-slate-900/15 text-slate-500'
+                      }`}
+                    >
+                      {isArchiveRoute ? 'This archived list has no items.' : 'Nothing here yet — add your first step below.'}
+                    </li>
+                  )}
+                  {sortedItems.map((item) => {
+                    return (
+                      <SortableItem
+                        key={item.id}
+                        item={item}
+                        listId={list.id}
+                        checkboxClass={checkboxClass}
+                        removeButtonClass={removeButtonClass}
+                        isDarkMode={isDarkMode}
+                        onToggle={handleToggleItem}
+                        onRemove={handleDeleteItem}
+                        onStartDeadlineEdit={handleStartDeadlineEdit}
+                        onClearDeadline={handleClearDeadline}
+                        dragDisabled={dragDisabled}
+                        readOnly={isArchived}
+                        isArchiveView={isArchiveRoute}
+                      />
+                    )
+                  })}
+                </ul>
+              </SortableContext>
+            </DndContext>
+
+            {!isArchiveRoute && (
+              <div className="relative mt-5">
+                <div className="flex flex-wrap gap-3 sm:flex-nowrap">
+                  <input
+                    value={draftItems[list.id] ?? ''}
+                    onChange={(event) =>
+                      setDraftItems((prev) => ({ ...prev, [list.id]: event.target.value }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault()
+                        handleAddItem(list.id)
+                      }
+                    }}
+                    placeholder="Add a task"
+                    className={addInputClass}
+                    disabled={isArchived}
+                  />
+                  <button type="button" onClick={() => handleAddItem(list.id)} className={addButtonClass} disabled={isArchived}>
+                    Add
+                  </button>
+                </div>
+                {!isArchived && list.items.some((item) => item.done) && (
+                  <button type="button" onClick={() => handleClearCompleted(list.id)} className={clearButtonClass}>
+                    Clear completed
+                  </button>
+                )}
+              </div>
             )}
-          </div>
-        )}
           </>
         )}
       </article>
@@ -852,26 +853,8 @@ function App() {
   }
 
   return (
-    <div className="relative min-h-screen w-full px-4 py-12 transition-colors duration-700 md:py-16">
-      <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-        <img
-          src={darkBackground}
-          alt=""
-          aria-hidden
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            isDarkMode ? 'opacity-100' : 'opacity-0'
-          }`}
-        />
-        <img
-          src={lightBackground}
-          alt=""
-          aria-hidden
-          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
-            isDarkMode ? 'opacity-0' : 'opacity-100'
-          }`}
-        />
-      </div>
-      <div className="relative z-10">
+    <>
+      <div className={`relative min-h-screen w-full px-4 py-12 transition-colors duration-700 md:py-16 ${pageBackgroundClass}`}>
         <div className={shellClass}>
           <div className="flex flex-col gap-8">
             <div className="flex w-full justify-end">
@@ -885,7 +868,7 @@ function App() {
                 isArchiveRoute
                   ? isDarkMode
                     ? 'border-emerald-400/40 bg-emerald-900/40'
-                    : 'border-sky-200 bg-sky-50'
+                    : 'border-sky-300 bg-sky-50/95 shadow-lg shadow-sky-200/80'
                   : isDarkMode
                     ? 'border-white/10 bg-white/5'
                     : 'border-slate-200 bg-white/95'
@@ -1261,7 +1244,7 @@ function App() {
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }
 
