@@ -393,21 +393,6 @@ function App() {
     )
   }
 
-  const handleTogglePin = (listId: string) => {
-    setChecklists((prev) =>
-      prev.map((list) =>
-        list.id === listId
-          ? {
-              ...list,
-              pinned: !list.pinned,
-              archived: !list.pinned ? false : list.archived,
-              archivedAt: !list.pinned ? null : list.archivedAt,
-            }
-          : list,
-      ),
-    )
-  }
-
   const handleArchiveChecklist = (listId: string) => {
     setChecklists((prev) =>
       prev.map((list) =>
@@ -531,9 +516,6 @@ function App() {
   const mutedText = isDarkMode ? 'text-slate-400' : 'text-slate-500'
   const secondaryText = isDarkMode ? 'text-slate-300' : 'text-slate-600'
   const labelText = isDarkMode ? 'text-slate-200' : 'text-slate-700'
-  const panelClass = `rounded-3xl border p-6 shadow-glass ${
-    isDarkMode ? 'border-emerald-200/25 bg-slate-900/75' : 'border-sky-200 bg-white shadow-lg shadow-sky-100/60'
-  }`
   const emptyStateClass = `rounded-3xl border border-dashed p-10 text-center ${
     isDarkMode ? 'border-emerald-300/25 bg-slate-900/70 text-emerald-100' : 'border-sky-200 bg-sky-50 text-sky-700'
   }`
@@ -583,9 +565,6 @@ function App() {
     isDarkMode
       ? 'border-white/15 text-slate-100 hover:bg-white/10'
       : 'border-slate-800/20 text-slate-900 hover:bg-slate-900/10'
-  }`
-  const primaryButtonClass = `mt-6 w-full rounded-2xl px-4 py-3 text-base font-semibold text-white shadow-glass transition ${
-    isDarkMode ? 'bg-emerald-600 hover:bg-emerald-300' : 'bg-sky-500 hover:bg-sky-400'
   }`
   const modalPrimaryButtonClass = `flex-[1.2] w-full rounded-2xl px-5 py-3 text-base font-semibold uppercase tracking-wide text-white shadow-glass transition ${
     isDarkMode ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-sky-500 hover:bg-sky-400'
