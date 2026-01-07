@@ -524,7 +524,7 @@ function App() {
   }`
   const inputClass = `mt-2 w-full rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
     isDarkMode
-      ? 'border-emerald-300/30 bg-slate-900/60 text-emerald-50 placeholder:text-emerald-200/70 focus:border-emerald-200 focus:ring-emerald-300/60'
+      ? 'border-emerald-300/30 bg-slate-900/60 text-emerald-50 placeholder:text-slate-400 focus:border-emerald-200 focus:ring-emerald-300/60'
       : 'border-sky-300 bg-white text-slate-900 placeholder:text-slate-500 focus:border-sky-500 focus:ring-sky-400/70'
   }`
   const addInputClass = `flex-1 min-w-0 rounded-2xl border px-4 py-3 text-base focus:outline-none focus:ring-2 ${
