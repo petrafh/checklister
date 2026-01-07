@@ -116,6 +116,14 @@ type SortableItemProps = {
   readOnly: boolean
   isArchiveView: boolean
 }
+const isDueToday = (deadline: string | null) => {
+  if (!deadline) return false
+
+  const today = new Date()
+  const todayStr = today.toISOString().split('T')[0] // YYYY-MM-DD
+
+  return deadline === todayStr
+}
 
 const SortableItem = ({
   item,
@@ -138,6 +146,7 @@ const SortableItem = ({
     disabled: combinedDragDisabled,
   })
   const deadlineLabel = item.deadline ? formatDeadline(item.deadline) : 'No deadline'
+  const isToday = isDueToday(item.deadline)
 
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -180,9 +189,21 @@ const SortableItem = ({
         </span>
       </label>
       <div className="flex items-center gap-2 text-xs">
-        <span className={item.deadline ? (isDarkMode ? 'text-emerald-200' : 'text-sky-600') : isDarkMode ? 'text-slate-400' : 'text-slate-500'}>
-          {deadlineLabel}
-        </span>
+      
+        <span
+  className={
+    isToday
+      ? 'text-red-500'
+      : item.deadline
+        ? (isDarkMode ? 'text-emerald-200' : 'text-sky-600')
+        : isDarkMode
+          ? 'text-slate-400'
+          : 'text-slate-500'
+  }
+>
+  {deadlineLabel}
+</span>
+
         {!isArchiveView && (
           <>
             <button
