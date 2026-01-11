@@ -111,7 +111,6 @@ type SortableItemProps = {
   onToggle: (listId: string, itemId: string) => void
   onRemove: (listId: string, itemId: string) => void
   onStartDeadlineEdit: (listId: string, itemId: string) => void
-  onClearDeadline: (listId: string, itemId: string) => void
   dragDisabled: boolean
   readOnly: boolean
   isArchiveView: boolean
@@ -134,7 +133,6 @@ const SortableItem = ({
   onToggle,
   onRemove,
   onStartDeadlineEdit,
-  onClearDeadline,
   dragDisabled,
   readOnly,
   isArchiveView,
@@ -191,18 +189,18 @@ const SortableItem = ({
       <div className="flex items-center gap-2 text-xs">
       
         <span
-  className={
-    isToday
-      ? 'text-red-500'
-      : item.deadline
-        ? (isDarkMode ? 'text-emerald-200' : 'text-sky-600')
-        : isDarkMode
-          ? 'text-slate-400'
-          : 'text-slate-500'
-  }
->
-  {deadlineLabel}
-</span>
+          className={
+            isToday
+              ? 'text-red-500'
+              : item.deadline
+                ? (isDarkMode ? 'text-emerald-200' : 'text-sky-600')
+                : isDarkMode
+                  ? 'text-slate-400'
+                  : 'text-slate-500'
+          }
+        >
+          {deadlineLabel}
+        </span>
 
         {!isArchiveView && (
           <>
@@ -218,16 +216,6 @@ const SortableItem = ({
             >
               {item.deadline ? 'Edit' : 'Add'}
             </button>
-            {item.deadline && (
-              <button
-              type="button"
-              onClick={() => onClearDeadline(listId, item.id)}
-              className={removeButtonClass}
-              disabled={readOnly}
-            >
-              clear
-            </button>
-            )}
           </>
         )}
       </div>
@@ -804,13 +792,12 @@ function App() {
                         removeButtonClass={removeButtonClass}
                         isDarkMode={isDarkMode}
                         onToggle={handleToggleItem}
-                        onRemove={handleDeleteItem}
-                        onStartDeadlineEdit={handleStartDeadlineEdit}
-                        onClearDeadline={handleClearDeadline}
-                        dragDisabled={dragDisabled}
-                        readOnly={isArchived}
-                        isArchiveView={isArchiveRoute}
-                      />
+                    onRemove={handleDeleteItem}
+                    onStartDeadlineEdit={handleStartDeadlineEdit}
+                    dragDisabled={dragDisabled}
+                    readOnly={isArchived}
+                    isArchiveView={isArchiveRoute}
+                  />
                     )
                   })}
                 </ul>
